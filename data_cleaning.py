@@ -94,7 +94,8 @@ for column in numeric_columns:
     iqr = q3 - q1
     lower = q1 - 1.5 * iqr
     upper = q3 + 1.5 * iqr
-    outliers = data[(data[column] < lower) | (data[column] > upper)]
+    outliers = data[
+        (data[column] < lower) | (data[column] > upper)]
     print(column, ":", len(outliers), "outliers")
 
 plt.figure(figsize=(14, 4))
@@ -116,14 +117,12 @@ data = data.reset_index(drop=True)
 print("\nMissing values left:", data.isnull().sum().sum())
 print("Rows left:", len(data))
 
-# ca and thal were decimals because of the missing values,
-# now we can change them back to whole numbers.
 data["ca"] = data["ca"].astype(int)
 data["thal"] = data["thal"].astype(int)
 
 
 # ---------------------------------------------------------------
-# 8. Make the target binary
+# Make the target binary
 # ---------------------------------------------------------------
 
 print("\nTarget before:")
@@ -140,8 +139,8 @@ plt.xticks(rotation=0)
 plt.show()
 
 
-# ---------------------------------------------------------------
-# 9. Look at the features
+# --------------------------------------------------------------- 
+# Look at the features
 # ---------------------------------------------------------------
 
 plt.figure(figsize=(14, 4))
@@ -168,7 +167,7 @@ plt.show()
 
 
 # ---------------------------------------------------------------
-# 10. Split into train and test (80% / 20%)
+# Split into train and test (80% / 20%)
 # ---------------------------------------------------------------
 
 train_parts = []
@@ -191,7 +190,7 @@ print("Sick share in test:", round(test["target"].mean(), 2))
 
 
 # ---------------------------------------------------------------
-# 11. Save the results
+# Save the results
 # ---------------------------------------------------------------
 
 data.to_csv("cleveland_clean.csv", index=False)
