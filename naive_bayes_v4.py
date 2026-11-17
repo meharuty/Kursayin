@@ -1,21 +1,3 @@
-# Naive Bayes classifier for heart disease prediction (version 4)
-# Target: 0 = healthy, 1 = sick
-# Libraries: pandas, numpy, matplotlib only
-#
-# Run data_cleaning_v2.py first. It creates train.csv and test.csv.
-#
-# What this script does, step by step:
-#   1. Finds which features have no importance and drops them
-#      (decided with cross-validation on the TRAIN data only)
-#   2. Compares four model variants with repeated cross-validation
-#   3. Tunes the decision threshold to find more sick patients
-#   4. Tests the chosen model ONCE on the test set
-#   5. Checks stability on all patients and shows feature importance
-#
-# Bayes' theorem used here:
-#   P(class | features) is proportional to
-#   P(class) * P(f1|class) * P(f2|class) * ...
-
 import os
 import numpy as np
 import pandas as pd
@@ -44,9 +26,8 @@ all_features = numeric_features + categorical_features
 # Features with a long right tail, used in variant B
 log_features = ["trestbps", "chol", "oldpeak"]
 
-REPEATS = 10            # how many times the cross-validation is repeated
-MIN_IMPORTANCE = 0.01   # a feature must lower the accuracy by at least
-                        # 1 percentage point when shuffled, otherwise it is dropped
+REPEATS = 10
+MIN_IMPORTANCE = 0.01
 
 print("Train size:", len(train), "| Test size:", len(test))
 
@@ -69,20 +50,16 @@ def train_model(data, numeric, categorical):
              "prior": {}, "mean": {}, "std": {}, "cat": {}, "unseen": {}}
 
     for label in [0, 1]:
-        part = data[data["target"] == label]        # patients of this class
+        part = data[data["target"] == label]
 
-        # prior: how common is this class?
         model["prior"][label] = len(part) / len(data)
 
-        # numeric features: mean and standard deviation inside the class
         model["mean"][label] = {}
         model["std"][label] = {}
         for feature in numeric:
             model["mean"][label][feature] = part[feature].mean()
             model["std"][label][feature] = part[feature].std() + 1e-6
 
-        # categorical features: share of each value inside the class.
-        # Laplace smoothing (+1) avoids probability 0 for rare values.
         model["cat"][label] = {}
         model["unseen"][label] = {}
         for feature in categorical:
@@ -178,12 +155,6 @@ def auc_score(y_true, probabilities):
 # ---------------------------------------------------------------
 # 6. Preparing the data for a model variant
 # ---------------------------------------------------------------
-# A "config" describes how the data is prepared before the model sees it:
-#   transform "none": numeric features used as they are (Gaussian)
-#   transform "log" : log of the skewed features, then Gaussian
-#   transform "bins": numeric features cut into 4 groups (quartiles)
-#                     and treated like categories (no bell curve needed)
-#   drop            : features that are removed
 
 def prepare(train_part, test_part, config):
     """Apply the config to the train and test part.
@@ -235,7 +206,7 @@ def cross_validate(data, config, repeats=REPEATS, k=5):
 
     for r in range(repeats):
         folds = make_folds(y, k, seed=r)
-        out_of_fold = np.zeros(len(data))   # prediction for every patient
+        out_of_fold = np.zeros(len(data))
 
         for i in range(k):
             test_idx = folds[i]
@@ -350,13 +321,9 @@ table = pd.DataFrame(results).set_index("name")
 print(table[["accuracy", "fold_std", "precision", "recall", "f1", "auc"]]
       .round(4).to_string())
 
-# Baseline: always predict the biggest class
 majority = max(train["target"].mean(), 1 - train["target"].mean())
 print("\nBaseline (predict the biggest class for everybody):", round(majority, 3))
 
-# Note: variant D chose its features using the same train data, so its
-# score here can be a little too optimistic. The test set (step 4) is
-# the fair check.
 best_index = int(np.argmax([r["accuracy"] for r in results]))
 best_config = configs[best_index]
 best_result = results[best_index]
@@ -366,10 +333,6 @@ print("Chosen variant:", best_config["name"])
 # ---------------------------------------------------------------
 # 10. STEP 3: tune the decision threshold (train data only)
 # ---------------------------------------------------------------
-# In medicine a missed sick patient is worse than a false alarm,
-# so we use the F2 score, which values recall more than precision.
-# The probabilities come from cross-validation on the train data,
-# so the test set is not used here.
 
 y_train = train["target"].values
 train_probs = best_result["probabilities"]
@@ -424,7 +387,6 @@ for threshold in [0.5, best_threshold]:
     print("  F1 score :", round(f1, 3))
     print("  TP =", tp, " TN =", tn, " FP =", fp, " FN =", fn)
 
-# For comparison: the model with all 13 features (threshold 0.5)
 all_train, all_test, all_numeric, all_categorical = prepare(train, test, config_all)
 all_model = train_model(all_train, all_numeric, all_categorical)
 all_labels, all_probs = predict(all_test, all_model)
@@ -433,7 +395,6 @@ print("\nFor comparison, all 13 features (threshold 0.5):")
 print("  Accuracy :", round(accuracy, 3), " Recall:", round(recall, 3),
       " AUC:", round(auc_score(y_test, all_probs), 3))
 
-# Plots for the tuned threshold
 final_labels = (prob_sick > best_threshold).astype(int)
 tp, tn, fp, fn = confusion_counts(y_test, final_labels)
 matrix = np.array([[tn, fp],
@@ -486,7 +447,6 @@ print("AUC      :", round(full_result["auc"], 3))
 # ---------------------------------------------------------------
 # 13. Feature importance of all 13 features (all patients)
 # ---------------------------------------------------------------
-# Grey bars are the features that were dropped in step 1.
 
 print("\nCalculating feature importance on all patients...")
 mean_drop, std_drop = cv_importance(full, config_all)
@@ -504,9 +464,6 @@ plt.barh(order.index, order.values, xerr=std_drop[order.index].values,
 plt.xlabel("Drop in accuracy when the feature is shuffled")
 plt.title("Feature importance (grey = dropped in step 1)")
 save_and_show("feature_importance")
-
-# A feature is clearly useful only if its bar is far from zero compared
-# with the error bar. Bars that touch zero mean "no measurable effect".
 
 
 # ---------------------------------------------------------------
