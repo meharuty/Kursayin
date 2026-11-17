@@ -1,14 +1,22 @@
 import os
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 
 os.makedirs("figures", exist_ok=True)
+matplotlib_cache = os.path.join(os.getcwd(), ".matplotlib")
+os.makedirs(matplotlib_cache, exist_ok=True)
+os.environ["MPLCONFIGDIR"] = matplotlib_cache
+
+import numpy as np
+import pandas as pd
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 
 def save_and_show(name):
     plt.savefig("figures/" + name + ".png", dpi=150, bbox_inches="tight")
-    plt.show()
+    if matplotlib.get_backend().lower() != "agg":
+        plt.show()
+    plt.close()
 
 
 # ---------------------------------------------------------------
@@ -354,9 +362,10 @@ best_threshold = threshold_table.loc[threshold_table["F2"].idxmax(), "threshold"
 print("Chosen threshold:", best_threshold)
 
 plt.figure(figsize=(6, 4))
-plt.plot(threshold_table["threshold"], threshold_table["accuracy"], label="accuracy")
-plt.plot(threshold_table["threshold"], threshold_table["precision"], label="precision")
-plt.plot(threshold_table["threshold"], threshold_table["recall"], label="recall")
+threshold_x = threshold_table["threshold"].to_numpy()
+plt.plot(threshold_x, threshold_table["accuracy"].to_numpy(), label="accuracy")
+plt.plot(threshold_x, threshold_table["precision"].to_numpy(), label="precision")
+plt.plot(threshold_x, threshold_table["recall"].to_numpy(), label="recall")
 plt.axvline(best_threshold, color="gray", linestyle="--")
 plt.xlabel("Threshold for predicting 'sick'")
 plt.title("Effect of the threshold")
